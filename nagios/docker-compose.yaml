@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  nagios:
+    image: jasonrivers/nagios:latest
+    container_name: nagios
+    restart: unless-stopped
+    ports:
+      - "8080:80"   # Akses Nagios di http://localhost:8080
+    environment:
+      - NAGIOSADMIN_USER=admin
+      - NAGIOSADMIN_PASS=admin123
+    volumes:
+      - nagios_conf:/opt/nagios/etc
+      - nagios_var:/opt/nagios/var
+      - nagios_plugins:/usr/local/nagios/libexec
+      - nagios_customplugins:/opt/Custom-Nagios-Plugins
+
+volumes:
+  nagios_conf:
+  nagios_var:
+  nagios_plugins:
+  nagios_customplugins:

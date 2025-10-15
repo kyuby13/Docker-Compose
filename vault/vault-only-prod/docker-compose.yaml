@@ -1,0 +1,33 @@
+version: "3.8"
+
+services:
+  vault:
+    image: hashicorp/vault:1.17
+    container_name: vault
+    restart: unless-stopped
+    cap_add:
+      - IPC_LOCK
+    ports:
+      - "8200:8200"
+    environment:
+      VAULT_LOCAL_CONFIG: |
+        {
+          "listener": [{
+            "tcp": {
+              "address": "0.0.0.0:8200",
+              "tls_disable": 0,
+              "tls_cert_file": "/vault/config/certs/vault.crt",
+              "tls_key_file": "/vault/config/certs/vault.key"
+            }
+          }],
+          "storage": {
+            "file": {
+              "path": "/vault/data"
+            }
+          },
+          "ui": true
+        }
+    volumes:
+      - ./vault-data:/vault/data
+      - ./vault-config:/vault/config
+      - ./certs:/vault/config/certs

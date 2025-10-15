@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  jenkins:
+    image: jenkins/jenkins:lts-jdk17
+    container_name: jenkins
+    restart: unless-stopped
+    user: root
+    ports:
+      - "8080:8080"   # Web UI
+      - "50000:50000" # Agent port
+    environment:
+      - JAVA_OPTS=-Xmx2g
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - jenkins-net
+
+volumes:
+  jenkins_home:
+    driver: local
+
+networks:
+  jenkins-net:
+    driver: bridge

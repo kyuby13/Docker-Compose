@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  rancher:
+    image: rancher/rancher:latest
+    container_name: rancher
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - rancher_data:/var/lib/rancher
+    environment:
+      - CATTLE_BOOTSTRAP_PASSWORD=admin123  # Password awal login
+
+volumes:
+  rancher_data:
