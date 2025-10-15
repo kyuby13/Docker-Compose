@@ -1,0 +1,156 @@
+version: '3.8'
+
+services:
+  # ==========================================
+  # 1️⃣ Reverse Proxy (Nginx Auto)
+  # ==========================================
+  nginx-proxy:
+    image: jwilder/nginx-proxy:latest
+    container_name: nginx-proxy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./data/certs:/etc/nginx/certs
+      - ./data/vhost.d:/etc/nginx/vhost.d
+      - ./data/html:/usr/share/nginx/html
+    networks:
+      - proxy-tier
+
+  # ==========================================
+  # 2️⃣ Let's Encrypt Companion (SSL)
+  # ==========================================
+  nginx-proxy-acme:
+    image: nginxproxy/acme-companion
+    container_name: nginx-proxy-acme
+    restart: always
+    depends_on:
+      - nginx-proxy
+    environment:
+      - DEFAULT_EMAIL=admin@games.com   # ubah ke email kamu
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./data/certs:/etc/nginx/certs
+      - ./data/vhost.d:/etc/nginx/vhost.d
+      - ./data/html:/usr/share/nginx/html
+    networks:
+      - proxy-tier
+
+  # ==========================================
+  # 3️⃣ Web Server (Nginx)
+  # ==========================================
+  web:
+    image: nginx:latest
+    container_name: web
+    restart: always
+    expose:
+      - "80"
+    environment:
+      - VIRTUAL_HOST=web.games.com
+      - LETSENCRYPT_HOST=web.games.com
+      - LETSENCRYPT_EMAIL=admin@games.com
+    volumes:
+      - ./web:/usr/share/nginx/html:ro
+      - ./web/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - php-web
+      - mysql
+    networks:
+      - proxy-tier
+      - backend
+
+  # ==========================================
+  # 4️⃣ PHP-FPM (Backend Logic)
+  # ==========================================
+  php-web:
+    image: php:8.2-fpm
+    container_name: php-web
+    restart: always
+    volumes:
+      - ./web:/usr/share/nginx/html
+    depends_on:
+      - mysql
+    networks:
+      - backend
+
+  # ==========================================
+  # 5️⃣ MySQL Database
+  # ==========================================
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass123
+      MYSQL_DATABASE: webdb
+      MYSQL_USER: webuser
+      MYSQL_PASSWORD: webpass123
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - backend
+
+volumes:
+  mysql_data:
+
+networks:
+  proxy-tier:
+    driver: bridge
+  backend:
+    driver: bridge
+
+# File: web/default.conf
+
+Nginx konfigurasi untuk PHP-FPM
+
+server {
+    listen 80;
+    server_name web.games.com;
+
+    root /usr/share/nginx/html;
+    index index.php index.html;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+
+    location ~ \.php$ {
+        include fastcgi_params;
+        fastcgi_pass php-web:9000;
+        fastcgi_index index.php;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+    }
+}
+
+#File: web/index.php
+
+Contoh sederhana koneksi ke database MySQL
+
+<?php
+$servername = "mysql";
+$username = "webuser";
+$password = "webpass123";
+$dbname = "webdb";
+
+$conn = new mysqli($servername, $username, $password, $dbname);
+
+if ($conn->connect_error) {
+  die("Connection failed: " . $conn->connect_error);
+}
+
+echo "<h1>Welcome to web.games.com</h1>";
+echo "Connected successfully to MySQL database!<br>";
+
+$result = $conn->query("SHOW DATABASES;");
+if ($result) {
+  echo "<h3>Available Databases:</h3><ul>";
+  while ($row = $result->fetch_assoc()) {
+    echo "<li>" . $row['Database'] . "</li>";
+  }
+  echo "</ul>";
+}
+
+$conn->close();
+?>

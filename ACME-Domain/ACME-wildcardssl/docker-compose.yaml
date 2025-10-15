@@ -1,0 +1,139 @@
+version: '3.8'
+
+services:
+  # ==========================================
+  # 1️⃣ Nginx Reverse Proxy
+  # ==========================================
+  nginx-proxy:
+    image: jwilder/nginx-proxy:latest
+    container_name: nginx-proxy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./data/certs:/etc/nginx/certs
+      - ./data/vhost.d:/etc/nginx/vhost.d
+      - ./data/html:/usr/share/nginx/html
+    networks:
+      - proxy-tier
+
+  # ==========================================
+  # 2️⃣ Let's Encrypt Wildcard (DNS Challenge)
+  # ==========================================
+  nginx-proxy-acme:
+    image: nginxproxy/acme-companion
+    container_name: nginx-proxy-acme
+    restart: always
+    depends_on:
+      - nginx-proxy
+    environment:
+      - DEFAULT_EMAIL=admin@games.com
+      - ACME_CA_URI=https://acme-v02.api.letsencrypt.org/directory
+      - DEBUG=false
+      - ACME_DNS_API=cloudflare
+      - CF_Token=YOUR_CLOUDFLARE_API_TOKEN   # <== ganti token Cloudflare kamu
+      - CF_Account_ID=YOUR_CLOUDFLARE_ACCOUNT_ID
+      - CF_Zone_ID=YOUR_CLOUDFLARE_ZONE_ID
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./data/certs:/etc/nginx/certs
+      - ./data/vhost.d:/etc/nginx/vhost.d
+      - ./data/html:/usr/share/nginx/html
+    networks:
+      - proxy-tier
+
+  # ==========================================
+  # 3️⃣ Web1 (Nginx + PHP-FPM)
+  # ==========================================
+  web1:
+    image: nginx:latest
+    container_name: web1
+    restart: always
+    expose:
+      - "80"
+    environment:
+      - VIRTUAL_HOST=web1.games.com
+      - LETSENCRYPT_HOST=games.com
+      - LETSENCRYPT_EMAIL=admin@games.com
+    volumes:
+      - ./web1:/usr/share/nginx/html:ro
+      - ./web1/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - php-web1
+    networks:
+      - proxy-tier
+
+  php-web1:
+    image: php:8.2-fpm
+    container_name: php-web1
+    restart: always
+    volumes:
+      - ./web1:/usr/share/nginx/html
+    networks:
+      - proxy-tier
+
+  # ==========================================
+  # 4️⃣ Web2 (Nginx + PHP-FPM)
+  # ==========================================
+  web2:
+    image: nginx:latest
+    container_name: web2
+    restart: always
+    expose:
+      - "80"
+    environment:
+      - VIRTUAL_HOST=web2.games.com
+      - LETSENCRYPT_HOST=games.com
+      - LETSENCRYPT_EMAIL=admin@games.com
+    volumes:
+      - ./web2:/usr/share/nginx/html:ro
+      - ./web2/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - php-web2
+    networks:
+      - proxy-tier
+
+  php-web2:
+    image: php:8.2-fpm
+    container_name: php-web2
+    restart: always
+    volumes:
+      - ./web2:/usr/share/nginx/html
+    networks:
+      - proxy-tier
+
+  # ==========================================
+  # 5️⃣ Web3 (Nginx + PHP-FPM)
+  # ==========================================
+  web3:
+    image: nginx:latest
+    container_name: web3
+    restart: always
+    expose:
+      - "80"
+    environment:
+      - VIRTUAL_HOST=web3.games.com
+      - LETSENCRYPT_HOST=games.com
+      - LETSENCRYPT_EMAIL=admin@games.com
+    volumes:
+      - ./web3:/usr/share/nginx/html:ro
+      - ./web3/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - php-web3
+    networks:
+      - proxy-tier
+
+  php-web3:
+    image: php:8.2-fpm
+    container_name: php-web3
+    restart: always
+    volumes:
+      - ./web3:/usr/share/nginx/html
+    networks:
+      - proxy-tier
+
+networks:
+  proxy-tier:
+    driver: bridge
