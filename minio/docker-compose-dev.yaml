@@ -1,0 +1,17 @@
+version: "3.8"
+
+services:
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    restart: unless-stopped
+    ports:
+      - "9000:9000"   # Port akses API / SDK
+      - "9001:9001"   # Port akses Console UI
+    environment:
+      MINIO_ROOT_USER: admin          # Ganti sesuai keinginan
+      MINIO_ROOT_PASSWORD: admin12345 # Minimal 8 karakter
+    volumes:
+      - ./data:/data      # Data disimpan di folder lokal ./data
+    command: server /data --console-address ":9001"
+

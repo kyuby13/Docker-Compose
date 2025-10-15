@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: admin                # Ganti sesuai kebutuhan
+      MINIO_ROOT_PASSWORD: strongpassword   # Harus >= 8 karakter
+      MINIO_SERVER_URL: https://minio.example.com
+      MINIO_BROWSER_REDIRECT_URL: https://minio.example.com
+      VIRTUAL_HOST: minio.example.com
+      LETSENCRYPT_HOST: minio.example.com
+      LETSENCRYPT_EMAIL: admin@example.com
+    command: server /data --console-address ":9001"
+    expose:
+      - "9000"
+      - "9001"
+    volumes:
+      - minio_data:/data
+
+  nginx-proxy:
+    image: jwilder/nginx-proxy:alpine
+    container_name: nginx-proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+      - ./nginx/vhost.d:/etc/nginx/vhost.d
+      - ./nginx/html:/usr/share/nginx/html
+
+  acme-companion:
+    image: nginxproxy/acme-companion
+    container_name: nginx-acme
+    restart: unless-stopped
+    environment:
+      DEFAULT_EMAIL: admin@example.com
+    volumes_from:
+      - nginx-proxy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./nginx/certs:/etc/nginx/certs
+      - ./nginx/vhost.d:/etc/nginx/vhost.d
+      - ./nginx/html:/usr/share/nginx/html
+
+volumes:
+  minio_data:
