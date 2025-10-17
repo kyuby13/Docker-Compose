@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  mariadb:
+    image: mariadb:11
+    container_name: temporal-mariadb
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: temporal
+      MYSQL_USER: temporal
+      MYSQL_PASSWORD: temporal
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    restart: unless-stopped
+
+  temporal:
+    image: temporalio/auto-setup:1.23
+    container_name: temporal
+    depends_on:
+      - mariadb
+    environment:
+      DB: mysql
+      MYSQL_SEEDS: mariadb
+      MYSQL_USER: temporal
+      MYSQL_PWD: temporal
+      MYSQL_DB: temporal
+      MYSQL_PORT: 3306
+      DYNAMIC_CONFIG_FILE_PATH: config/dynamicconfig/development.yaml
+    ports:
+      - "7233:7233" # Temporal Frontend gRPC port
+    restart: unless-stopped
+
+  temporal-admin-tools:
+    image: temporalio/admin-tools:1.23
+    container_name: temporal-admin-tools
+    depends_on:
+      - temporal
+    environment:
+      TEMPORAL_CLI_ADDRESS: temporal:7233
+    stdin_open: true
+    tty: true
+
+  temporal-web:
+    image: temporalio/web:2.30.0
+    container_name: temporal-web
+    depends_on:
+      - temporal
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_CORS_ORIGINS: http://localhost:8080
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+volumes:
+  mariadb_data:
