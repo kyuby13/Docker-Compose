@@ -25,11 +25,6 @@ services:
         - keycloak_data_baru:/opt/keycloak/data
         - ./theme:/opt/keycloak/providers
       environment:
-        #DB_VENDOR: mariadb
-        #DB_ADDR: mariadb
-        #DB_DATABASE: keycloak
-        #DB_USER: admin
-        #DB_PASSWORD: admin
         KC_DB: mariadb
         KC_DB_URL: mariadb
         KC_DB_URL_HOST: mariadb
@@ -49,12 +44,7 @@ services:
         KC_PROXY: edge
         KC_HOSTNAME_ADMIN_URL: https://svr.wisata-budaya.my.id
         KC_HOSTNAME: svr.wisata-budaya.my.id
-      #entrypoint: ["/opt/keycloak/bin/kc.sh", "start-dev"]
       entrypoint: ["/opt/keycloak/bin/kc.sh", "start"]
-      #entrypoint: ["/opt/keycloak/bin/kc.sh", "start --import-realm"]
-      #entrypoint: ["/opt/keycloak/bin/kc.sh", "start --auto-build"]
-      #entrypoint: ["/opt/keycloak/bin/kc.sh", "start"]
-      #entrypoint: ["/opt/keycloak/bin/kc.sh", "build  --health-enabled --metrics-enabled"]
       ports:
         - 8080:8080
       depends_on:
