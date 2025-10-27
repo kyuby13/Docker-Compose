@@ -39,7 +39,7 @@ services:
         KEYCLOAK_PASSWORD: admin
         KEYCLOAK_ADMIN: admin
         KEYCLOAK_ADMIN_PASSWORD: admin
-        KEYCLOAK_FRONTEND_URL: https://keycloak.qoin.id/auth
+        KEYCLOAK_FRONTEND_URL: https://svr.wisata-budaya.my.id/auth
         KC_PROXY_ADDRESS_FORWARDING: "true"
         KC_HOSTNAME_STRICT: "false"
         KC_HOSTNAME_STRICT_HTTPS: "false"
@@ -47,8 +47,8 @@ services:
         KC_HEALTH_ENABLED: "true"
         KC_METRICS_ENABLED: "true"
         KC_PROXY: edge
-        KC_HOSTNAME_ADMIN_URL: https://keycloak.qoin.id
-        KC_HOSTNAME: keycloak.qoin.id
+        KC_HOSTNAME_ADMIN_URL: https://svr.wisata-budaya.my.id
+        KC_HOSTNAME: svr.wisata-budaya.my.id
       #entrypoint: ["/opt/keycloak/bin/kc.sh", "start-dev"]
       entrypoint: ["/opt/keycloak/bin/kc.sh", "start"]
       #entrypoint: ["/opt/keycloak/bin/kc.sh", "start --import-realm"]
