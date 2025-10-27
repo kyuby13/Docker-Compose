@@ -1,0 +1,65 @@
+version: '3'
+
+volumes:
+  keycloak_data_baru:
+  mysql_data_baru:
+      driver: local
+
+services:
+  mariadb:
+      image: docker.io/mariadb:10.11.5
+      restart: always
+      volumes:
+        - mysql_data_baru:/var/lib/mysql
+      environment:
+        MYSQL_DATABASE: keycloak
+        MYSQL_ROOT_PASSWORD: root123!
+        MYSQL_USER: admin
+        MYSQL_PASSWORD: admin
+      ports:
+        - 3306:3306
+  keycloak:
+      image: quay.io/keycloak/keycloak:26.0.2
+      restart: always
+      volumes:
+        - keycloak_data_baru:/opt/keycloak/data
+        - ./theme:/opt/keycloak/providers
+      environment:
+        #DB_VENDOR: mariadb
+        #DB_ADDR: mariadb
+        #DB_DATABASE: keycloak
+        #DB_USER: admin
+        #DB_PASSWORD: admin
+        KC_DB: mariadb
+        KC_DB_URL: mariadb
+        KC_DB_URL_HOST: mariadb
+        KC_DB_USERNAME: admin
+        KC_DB_PASSWORD: admin
+        KEYCLOAK_USER: admin
+        KEYCLOAK_PASSWORD: admin
+        KC_BOOTSTRAP_ADMIN_PASSWORD : admin
+        KC_BOOTSTRAP_ADMIN_USERNAME : admin
+        #KEYCLOAK_ADMIN: admin
+        #KEYCLOAK_ADMIN_PASSWORD: admin
+        #KEYCLOAK_FRONTEND_URL: https://svr.wisata-budaya.my.id/auth
+        #KC_PROXY_ADDRESS_FORWARDING: "true"
+        KC_PROXY_HEADERS: "xforwarded"
+        KC_HOSTNAME_STRICT: "false"
+        KC_HOSTNAME_STRICT_HTTPS: "false"
+        KC_HTTP_ENABLED: "true"
+        KC_HEALTH_ENABLED: "true"
+        KC_METRICS_ENABLED: "true"
+        #KC_PROXY: edge
+        #KC_HOSTNAME_ADMIN_URL: https://svr.wisata-budaya.my.id
+        KC_HOSTNAME: https://svr.wisata-budaya.my.id
+        KC_HOSTNAME_ADMIN:  https://svr.wisata-budaya.my.id
+      #entrypoint: ["/opt/keycloak/bin/kc.sh", "start-dev"]
+      entrypoint: ["/opt/keycloak/bin/kc.sh", "start"]
+      #entrypoint: ["/opt/keycloak/bin/kc.sh", "start --import-realm"]
+      #entrypoint: ["/opt/keycloak/bin/kc.sh", "start --auto-build"]
+      #entrypoint: ["/opt/keycloak/bin/kc.sh", "start"]
+      #entrypoint: ["/opt/keycloak/bin/kc.sh", "build  --health-enabled --metrics-enabled"]
+      ports:
+        - 8080:8080
+      depends_on:
+        - mariadb

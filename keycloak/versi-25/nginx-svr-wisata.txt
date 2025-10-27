@@ -1,0 +1,48 @@
+dnf install epel-release
+dnf install nginx
+dnf install certbot python3-certbot-nginx
+certbot --nginx -d your_domain
+
+cd /etc/nginx/conf.d/ 
+more svr.wisata-budaya.my.id.conf
+
+server {
+    #port akses utama
+    listen 80;
+    server_name svr.wisata-budaya.my.id;
+    return 301 https://$host$request_uri;
+
+
+}
+
+server {
+
+    listen 443 http2 ssl;
+    server_name svr.wisata-budaya.my.id;
+    ssl_certificate /etc/letsencrypt/live/svr.wisata-budaya.my.id/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/svr.wisata-budaya.my.id/privkey.pem; # managed by Certbot
+    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+
+
+    access_log /var/log/nginx/reverse-access2.log;
+    error_log /var/log/nginx/reverse-error2.log;
+
+     #proxy_set_header X-Forwarded-For $proxy_protocol_addr; # To forward the original client's IP address
+     #proxy_set_header X-Forwarded-Proto $scheme; # to forward the  original protocol (HTTP or HTTPS)
+     #proxy_set_header Host $host; # to forward the original host requested by the client
+
+    location / {
+        #ubah port ke port dari aplikasi yang berjalan dalam kontainer untuk time di port 8080
+    # proxy_pass http://115.85.82.120:8080;
+    # proxy_pass http://keycloak.loyalto.id:8080;
+     proxy_pass http://localhost:8080;
+      proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "Upgrade";
+        proxy_set_header Host $host;
+   }
+}
