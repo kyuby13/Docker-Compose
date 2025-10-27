@@ -1,0 +1,29 @@
+version: "3"
+
+services:
+  netdata:
+    image: netdata/netdata:latest
+    container_name: netdata-child
+    hostname: netdata-child
+    restart: unless-stopped
+    ports:
+      - "19999:19999"
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - apparmor:unconfined
+    volumes:
+      - netdata_child_config:/etc/netdata
+      - netdata_child_lib:/var/lib/netdata
+      - netdata_child_cache:/var/cache/netdata
+    environment:
+      - NETDATA_PARENT=192.168.1.10:19999
+      - NETDATA_STREAM_API_KEY=key-child-b
+      - NETDATA_STREAM_COMPRESSION=lz4
+      - NETDATA_STREAM_ENCRYPTION=none
+      - NETDATA_NODES_CHILD=yes
+
+volumes:
+  netdata_child_config:
+  netdata_child_lib:
+  netdata_child_cache:

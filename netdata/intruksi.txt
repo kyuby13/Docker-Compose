@@ -1,0 +1,38 @@
+1. server / parent -> misal ip : 192.168.1.10
+
+-jalankan
+docker compose up -d
+
+- akses web
+http://192.168.1.10:19999
+
+2. Running yang di child
+
+docker compose up -d
+
+3. Edit sream yang di parent
+
+- masuk ke docker parent
+
+docker exec -it netdata-parent bash
+
+- edit file
+
+nano /etc/netdata/stream.conf
+
+- tambahkan file
+
+[key-child-b]
+    enabled = yes
+    default history = 3600
+    default memory mode = save
+
+- restar service 
+
+docker restart netdata-parent
+
+4.Test koneksi dan verifikasi
+
+docker logs netdata-child
+
+
