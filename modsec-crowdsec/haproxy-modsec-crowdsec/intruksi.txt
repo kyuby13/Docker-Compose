@@ -1,17 +1,38 @@
 #Struktur Folder
 
-/opt/waf/
+/opt/waf-stack/
 ├── docker-compose.yml
 ├── haproxy/
 │   ├── haproxy.cfg
-│   └── certs/
-│       └── geotrust.pem
+│   ├── certs/
+│   │   └── wildcard_geotrust.pem
 ├── modsec/
 │   ├── nginx.conf
-│   └── modsecurity.conf
-└── logs/
+│   ├── modsecurity.conf
+│   ├── crs-setup.conf
+│   └── rules/
+│       └── local-exclusions.conf
+├── crowdsec/
+│   └── config/
+│       └── (auto terisi dari container)
+├── logs/
+│   ├── haproxy/
+│   ├── modsec/
+│   └── suricata/
+└── suricata/
+    ├── suricata.yaml
+    └── rules/
+
 
 #Diagram infra
+
+Client → HAProxy (SSL, frontend HTTPS)
+        → ModSecurity (WAF)
+        → Backend (2 server)
+        → CrowdSec (analisa log & ban IP)
+        → cs-firewall-bouncer (ban IP di OS)
+        → Suricata (IDS/IPS monitor jaringan)
+
 
         Internet (Client)
                  │
@@ -163,3 +184,17 @@ docker restart modsec
 - Cek log modsec
 
 docker logs modsec | grep forwarder
+
+#Suricata
+
+Integrasi Otomatis
+
+Suricata menulis log → eve.json
+
+CrowdSec membaca /var/log/suricata/eve.json → ban otomatis IP jahat
+
+cs-bouncer sinkron dengan LAPI → langsung drop packet lewat nftables
+
+ModSecurity filter layer HTTP → tambah lapisan WAF
+
+HAProxy handle SSL, routing ke backend
