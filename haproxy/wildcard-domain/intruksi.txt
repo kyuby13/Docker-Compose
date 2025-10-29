@@ -1,0 +1,38 @@
+#topology :
+
+Domain wildcard	*.site1.com
+Server 1 (HAProxy)  		10.0.0.1
+Server 2 (Backend API & Web)	10.0.0.2
+Server 3 (Backend Admin)	10.0.0.3
+Load balancing	❌ (satu backend per service)
+Dashboard login	admin / P@ss1234
+
+
+#struktur directory
+
+/opt/haproxy/
+├── docker-compose.yml
+├── config/
+│   └── haproxy.cfg
+└── certs/
+    └── site1_com.pem
+
+#sertifikat geotrush misal pastikan sudah di gabung
+
+cat site1_com.crt site1_com.ca-bundle site1_com.key > site1_com.pem
+mv site1_com.pem /opt/haproxy/certs/
+
+
+#jalankan haproxy
+
+cd /opt/haproxy
+docker compose up -d
+
+#Test
+
+https://api.site1.com	backend_api	10.0.0.2
+https://admin.site1.com	backend_admin	10.0.0.3
+https://www.site1.com	backend_www	10.0.0.2
+https://site1.com	backend_www	10.0.0.2
+http://site1.com	Redirect ke HTTPS	-
+http://10.0.0.1:8404/stats	Dashboard	admin / P@ss1234

@@ -1,0 +1,68 @@
+global
+    log stdout format raw local0
+    maxconn 2000
+    tune.ssl.default-dh-param 2048
+
+defaults
+    log     global
+    mode    http
+    option  httplog
+    option  dontlognull
+    option  forwardfor
+    timeout connect 5s
+    timeout client  50s
+    timeout server  50s
+
+# --- HTTP Frontend (redirect to HTTPS)
+frontend http_front
+    bind *:80
+    mode http
+    redirect scheme https code 301 if !{ ssl_fc }
+
+# --- HTTPS Frontend
+frontend https_front
+    bind *:443 ssl crt /usr/local/etc/haproxy/certs/site1_com.pem
+    mode http
+
+    # ACL: deteksi subdomain
+    acl host_api   hdr_beg(host) -i api.
+    acl host_admin hdr_beg(host) -i admin.
+    acl host_www   hdr_beg(host) -i www.
+    acl host_root  hdr(host) -i site1.com
+
+    # Routing rules berdasarkan host
+    use_backend backend_api   if host_api
+    use_backend backend_admin if host_admin
+    use_backend backend_www   if host_www
+    use_backend backend_www   if host_root
+
+    default_backend backend_www  # fallback
+
+# --- Backend untuk API (Server 2 primary, Server 3 backup)
+backend backend_api
+    balance roundrobin
+    option httpchk GET /health
+    server api_primary 10.0.0.2:80 check inter 2s fall 3 rise 2
+    server api_backup  10.0.0.3:80 check backup
+
+# --- Backend untuk Admin (Server 3 primary, Server 2 backup)
+backend backend_admin
+    balance roundrobin
+    option httpchk GET /
+    server admin_primary 10.0.0.3:80 check inter 2s fall 3 rise 2
+    server admin_backup  10.0.0.2:80 check backup
+
+# --- Backend untuk Web utama (Server 2 primary, Server 3 backup)
+backend backend_www
+    balance roundrobin
+    option httpchk GET /
+    server web_primary 10.0.0.2:80 check inter 2s fall 3 rise 2
+    server web_backup  10.0.0.3:80 check backup
+
+# --- HAProxy Stats Dashboard
+frontend stats
+    bind *:8404
+    stats enable
+    stats uri /stats
+    stats refresh 10s
+    stats auth admin:P@ss1234

@@ -1,0 +1,70 @@
+Arsitektur :
+
+Server 1  →  HAProxy + acme.sh (auto SSL)
+Server 2  →  Backend untuk site1.com
+Server 3  →  Backend untuk site2.com
+
+
+1. Buat direktori
+
+mkdir -p /opt/haproxy/{certs,config}
+cd /opt/haproxy
+
+2. Install SSL misalkan jika pake DNS Cloudflare
+
+#Pastikan kamu sudah isi token di compose file.
+
+#Lalu jalankan container:
+
+docker compose up -d acme
+
+#Kemudian masuk ke container acme:
+
+docker exec -it acme sh
+
+#Jalankan
+
+acme.sh --issue --dns dns_cf -d site1.com -d www.site1.com
+acme.sh --issue --dns dns_cf -d site2.com -d www.site2.com
+
+#Setelah berhasil, export cert ke folder HAProxy:
+
+acme.sh --install-cert -d site1.com \
+  --key-file /certs/site1.com.key \
+  --fullchain-file /certs/site1.com.crt \
+  --reloadcmd "docker restart haproxy"
+
+acme.sh --install-cert -d site2.com \
+  --key-file /certs/site2.com.key \
+  --fullchain-file /certs/site2.com.crt \
+  --reloadcmd "docker restart haproxy"
+
+#Gabungkan cert + key jadi .pem (HAProxy format):
+
+cd /certs
+cat site1.com.crt site1.com.key > site1.com.pem
+cat site2.com.crt site2.com.key > site2.com.pem
+
+3. Jika tidak pakai Cloudflare (mode standalone)
+Pastikan port 80 tidak digunakan oleh HAProxy saat request sertifikat.
+Kamu bisa:
+
+docker stop haproxy
+docker run --rm -it -v $(pwd)/certs:/certs -p 80:80 neilpang/acme.sh \
+  --issue --standalone -d site1.com -d site2.com
+
+#jalankan
+
+docker compose up -d
+
+4. Cak Hasil
+
+Domain	Backend	SSL Status
+https://site1.com	Server 2	Auto Let's Encrypt valid
+https://site2.com	Server 3	Auto Let's Encrypt valid
+http://site1.com	-	Redirect ke HTTPS
+Dashboard	http://<IP_HAPROXY>:8404/stats	Login admin:admin
+
+5. Verifiaksi auto renewal
+
+docker exec -it acme crontab -l

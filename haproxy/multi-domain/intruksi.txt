@@ -1,0 +1,53 @@
+1. Buat direktori
+
+mkdir -p /opt/haproxy/{certs,config}
+cd /opt/haproxy
+
+2. Install SSL misalkan (Let's Encrypt) 
+
+#Ubuntu
+
+sudo apt install certbot -y
+sudo certbot certonly --standalone -d site1.com
+sudo certbot certonly --standalone -d site2.com
+
+#Centos/RHEL
+
+dnf install certbot python3-certbot-nginx -y  ( jika menggunakan nginx )
+dnf install certbot python3-certbot-apache -y ( jika menggunakan apache )
+
+cerbot –nginx -d example.com
+
+3. Setelah di install akan di simpan di path berikut
+
+/etc/letsencrypt/live/site1.com/fullchain.pem
+/etc/letsencrypt/live/site1.com/privkey.pem
+
+4. gabungkan jadi .pem ( karena haproxy butuh gabungan cert dan key)
+
+sudo bash -c 'cat /etc/letsencrypt/live/site1.com/fullchain.pem /etc/letsencrypt/live/site1.com/privkey.pem > /opt/haproxy/certs/site1.com.pem'
+sudo bash -c 'cat /etc/letsencrypt/live/site2.com/fullchain.pem /etc/letsencrypt/live/site2.com/privkey.pem > /opt/haproxy/certs/site2.com.pem'
+
+5. copy atau buat haproxy.cfg
+
+nano /opt/haproxy/config/haproxy.cfg
+
+6. copy atau buat docker compose nya
+
+7. jalankan 
+
+docker compose up -d
+
+8. Test
+
+http://site1.com	Server 2	Redirect ke HTTPS, tampil halaman dari backend 2
+http://site2.com	Server 3	Redirect ke HTTPS, tampil halaman dari backend 3
+
+Dashboard HAProxy: http://example.com:8404/stats
+(login: admin:admin)
+
+9. Auto-Renew Sertifikat
+
+sudo crontab -e
+
+0 3 * * * certbot renew --quiet && cat /etc/letsencrypt/live/example.com/fullchain.pem /etc/letsencrypt/live/example.com/privkey.pem > /opt/haproxy/certs/example.com.pem && docker restart haproxy
