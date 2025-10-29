@@ -1,0 +1,165 @@
+#Struktur Folder
+
+/opt/waf/
+├── docker-compose.yml
+├── haproxy/
+│   ├── haproxy.cfg
+│   └── certs/
+│       └── geotrust.pem
+├── modsec/
+│   ├── nginx.conf
+│   └── modsecurity.conf
+└── logs/
+
+#Diagram infra
+
+        Internet (Client)
+                 │
+                 ▼
+        ┌────────────────────┐
+        │ Server 1           │
+        │────────────────────│
+        │ HAProxy (SSL + LB) │
+        │ Nginx ModSecurity  │
+        │ CrowdSec + Bouncer │
+        └────────────────────┘
+           │             │
+           ▼             ▼
+ ┌────────────────┐   ┌────────────────┐
+ │ Server 2       │   │ Server 3       │
+ │ Backend (App)  │   │ Backend (App)  │
+ └────────────────┘   └────────────────┘
+
+#Sertifikat GeoTrust
+
+cat your_domain.crt intermediate.crt private.key > ./haproxy/certs/geotrust.pem
+
+#Generate API Key untuk Bouncer
+
+docker exec -it crowdsec cscli bouncers add haproxy-bouncer
+
+Contoh output:
+
+Api key for 'haproxy-bouncer':
+1234567890abcdef1234567890abcdef
+
+Simpan hasil itu ke .env file:
+
+echo "CROWDSEC_API_KEY=1234567890abcdef1234567890abcdef" > .env
+
+#Jalankan Semua
+
+cd /opt/waf
+docker compose up -d
+
+#Verifikasi
+
+Cek container:
+
+docker ps
+
+Cek log CrowdSec:
+
+docker exec -it crowdsec cscli metrics
+
+Cek bouncer aktif:
+
+docker exec -it crowdsec cscli bouncers list
+
+Test WAF:
+
+curl -k "https://yourdomain.com/?param=<script>alert(1)</script>"
+
+→ Harus dapat 403 Forbidden
+
+Test CrowdSec:
+
+Simulasikan brute-force atau request aneh:
+
+ab -n 500 -c 50 https://yourdomain.com/
+
+Kemudian cek apakah IP kamu dibanned:
+
+docker exec -it crowdsec cscli decisions list
+
+#Cara Delist / Unban IP di CrowdSec
+
+docker exec -it crowdsec cscli decisions list
+
+docker exec -it crowdsec cscli decisions delete --ip 192.168.1.10
+atau
+docker exec -it crowdsec cscli decisions remove -i 192.168.1.10
+
+hapus semua ip yang ke bannned
+
+docker exec -it crowdsec cscli decisions delete --all
+
+#Cara Whitelist IP (Agar Tidak Pernah Diblokir)
+
+via Konfigurasi YAML
+
+edit atau tambahkan file
+
+/etc/crowdsec/parsers/s02-enrich/whitelists.yaml
+
+tambahkan
+
+name: whitelist_admin_ip
+description: "Whitelist admin and internal IPs"
+whitelist:
+  reason: "trusted source"
+  ip:
+    - 192.168.1.10        # IP admin kamu
+    - 10.0.0.0/24         # subnet internal backend
+
+lalu restart
+
+docker restart crowdsec
+
+Via command line
+
+docker exec -it crowdsec cscli decisions add --ip 192.168.1.10 --type whitelist --duration 9999h
+
+#Cek Status IP (ban atau tidak)
+
+docker exec -it crowdsec cscli decisions list --ip 192.168.1.10
+
+#Cek Semua Whitelist Aktif
+
+docker exec -it crowdsec cscli hub list | grep whitelist
+
+docker exec -it crowdsec cscli parsers list | grep whitelist
+
+#Cara exclude atau edit Rule di modsec
+
+buat file : misal ini contoh ada kata forwader rule modsec di bypass
+
+nano ./modsec/rules/local-exclusions.conf
+
+# ===============================================
+# Custom Local Exclusions - forwarder bypass rule
+# ===============================================
+
+# Jika ada request mengandung kata "forwarder", skip rule 942100
+SecRule REQUEST_URI "(?i)forwarder" "id:10001,phase:2,pass,nolog,ctl:ruleRemoveById=942100"
+
+# Tambahan: skip semua rule yang sensitif terhadap kata ini di body juga
+SecRule REQUEST_BODY "(?i)forwarder" "id:10002,phase:2,pass,nolog,ctl:ruleRemoveByTag=attack-sqli"
+
+Penjelasan:
+
+id:10001 dan id:10002 → ID custom (pastikan tidak bentrok)
+
+ctl:ruleRemoveById=942100 → menonaktifkan rule ID tertentu
+
+ctl:ruleRemoveByTag=attack-sqli → menonaktifkan grup rule tertentu (misal SQLi)
+
+nolog dan pass → biar request diteruskan tanpa logging alert
+
+- RESTART MODSEC CONTAINER
+
+docker restart modsec
+
+- Cek log modsec
+
+docker logs modsec | grep forwarder
