@@ -1,0 +1,17 @@
+5. Akses Portainer
+
+Buka di browser:
+
+https://<IP-server>:9443
+
+atau
+
+https://192.168.1.10:9443
+
+Saat pertama kali dibuka, kamu akan:
+
+Diminta membuat akun admin.
+
+Memilih environment Docker lokal (default).
+
+
