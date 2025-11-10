@@ -1,0 +1,42 @@
+# install wazuh server
+
+mkdir -p /opt/wazuh-docker
+cd /opt/wazuh-docker
+
+curl -so docker-compose.yml https://packages.wazuh.com/4.8/docker-compose.yml
+
+curl -sO https://packages.wazuh.com/4.8/config/wazuh_cluster/wazuh_manager.conf
+curl -sO https://packages.wazuh.com/4.8/config/dashboard/kibana.yml
+curl -sO https://packages.wazuh.com/4.8/config/elasticsearch/elasticsearch.yml
+
+docker compose up -d
+
+Akses Wazuh Dashboard
+
+https://<IP_SERVER>:5601
+Username: admin
+Password: admin
+
+#wazuh agent
+
+docker run -d --name wazuh-agent \
+  --restart=always \
+  -e WAZUH_MANAGER='<IP_WAZUH_SERVER>' \
+  -e WAZUH_AGENT_NAME='agent-docker' \
+  wazuh/wazuh-agent:4.8.0
+
+Ganti <IP_WAZUH_SERVER> dengan IP dari container manager atau host server.
+
+Verifikasi Agent Terhubung
+
+Masuk ke Wazuh Dashboard → Agents → Agents status
+Kamu akan melihat agent baru dengan status “Active”.
+
+#log
+
+Melihat Log dan Debug
+
+docker logs -f wazuh.manager
+docker logs -f wazuh-agent
+
+
