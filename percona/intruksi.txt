@@ -49,7 +49,7 @@ pmm-admin config --server-url=http://admin:admin@192.168.1.10:8080
 
 pmm-admin add mysql \
   --username=root \
-  --password=RootPassMariaDB \
+  --password=Pass-MariaDB \
   --host=127.0.0.1 \
   --port=3306 \
   mariadb-server-01
