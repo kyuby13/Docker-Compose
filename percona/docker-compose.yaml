@@ -1,0 +1,38 @@
+version: "3.8"
+
+services:
+  percona:
+    image: percona/percona-server:latest
+    container_name: percona-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: mydb
+      MYSQL_USER: myuser
+      MYSQL_PASSWORD: mypass123
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./data:/var/lib/mysql
+
+  pmm-server:
+    image: percona/pmm-server:latest
+    container_name: pmm-server
+    restart: always
+    ports:
+      - "8080:80"     # Akses Dashboard di http://IP-Server:8080
+    volumes:
+      - ./pmm-data:/srv
+
+  pmm-client:
+    image: percona/pmm-client:latest
+    container_name: pmm-client
+    restart: always
+    network_mode: "host"   # supaya bisa baca DB di host/compose
+    environment:
+      PMM_SERVER: http://localhost:8080
+      PMM_USER: admin
+      PMM_PASSWORD: admin
+    depends_on:
+      - percona
+      - pmm-server

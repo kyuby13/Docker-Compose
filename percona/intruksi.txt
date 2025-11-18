@@ -1,0 +1,70 @@
+1. Strukture Data
+
+percona-stack/
+ ├─ docker-compose.yml
+ ├─ data/
+ └─ pmm-data/
+
+2. Jalankan docker
+
+docker compose up -d
+
+3. akses dahsboard
+
+http://IP-SERVER:8080
+
+Default login:
+
+User: admin
+
+Password: admin
+
+4. hubungkan percona ke pmm
+
+docker exec -it pmm-client pmm-admin add mysql \
+  --username=root \
+  --password=root123 \
+  --query-source=slowlog \
+  percona-mysql
+
+5. Misalkan punya banyak server mariadb / mysql server
+
+
+# Install PMM Client di server MariaDB
+
++Ubuntu
+
+sudo apt update
+sudo apt install pmm2-client -y
+
++Centos
+
+sudo yum install pmm2-client -y
+
+#Register server MariaDB ke PMM Server
+
+pmm-admin config --server-url=http://admin:admin@192.168.1.10:8080
+
+#Tambhakan Mariadb ke PMM
+
+pmm-admin add mysql \
+  --username=root \
+  --password=RootPassMariaDB \
+  --host=127.0.0.1 \
+  --port=3306 \
+  mariadb-server-01
+
+#Cek list 
+
+pmm-admin list
+
+6. Di Mariadb harus mengaktifkan
+
+Edit /etc/mysql/my.cnf atau /etc/my.cnf:
+
+[mysqld]
+performance_schema=ON
+
+systemctl restart mariadb
+
+
