@@ -1,0 +1,7 @@
+#jalankan
+
+docker-compose up -d
+
+#akses
+
+http://IP-SERVER:3001
